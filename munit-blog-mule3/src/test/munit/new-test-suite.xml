@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:mock="http://www.mulesoft.org/schema/mule/mock"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/mock/current/mule-mock.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd">
+
+	<spring:beans>
+		<spring:import resource="classpath:munit-blog-mule3.xml" />
+	</spring:beans>
+
+	<munit:config name="munit" doc:name="MUnit configuration"/>
+
+	<munit:test name="hello-test" description="Test" >
+		<mock:when messageProcessor="mule:set-payload" doc:name="Mock">
+			<mock:with-attributes>
+				<mock:with-attribute name="doc:name" whereValue="#['Hello world!']" />
+			</mock:with-attributes>
+			<mock:then-return payload="#['Hello world Mock!']" />
+		</mock:when>
+
+		<mock:when messageProcessor="mule:flow" doc:name="Mock">
+			<mock:with-attributes>
+				<mock:with-attribute name="name" whereValue="#[matchContains('goodbyeFlow')]" />
+			</mock:with-attributes>
+
+			<mock:then-return payload="#[]">
+
+				<mock:invocation-properties>
+					<mock:invocation-property key="myVar" value="#['varValue']" />
+				</mock:invocation-properties>
+				<mock:inbound-properties>
+					<mock:inbound-property key="myProp" value="#['propertyValue']" />
+				</mock:inbound-properties>
+				<mock:outbound-properties>
+					<mock:outbound-property key="myProp" value="#['propertyValue']" />
+				</mock:outbound-properties>
+
+			</mock:then-return>
+		</mock:when>
+
+		<mock:spy messageProcessor="mule:set-payload" doc:name="Spy">
+			<mock:with-attributes>
+				<mock:with-attribute whereValue="#['Hello world!']" name="doc:name" />
+			</mock:with-attributes>
+			<mock:assertions-before-call>
+				<munit:assert-null message="Ooops! Payload Is not Null" doc:name="Assert Null Payload" />
+			</mock:assertions-before-call>
+			<mock:assertions-after-call>
+				<munit:assert-not-null message="Ooops! Payload is Null" doc:name="Assert Not Null Payload" />
+			</mock:assertions-after-call>
+		</mock:spy>
+
+		<set-payload value="#[null]" doc:name="Set Payload"/>
+
+		<flow-ref name="helloFlow" doc:name="Flow-ref to helloFlow" />
+
+		<!-- Payload is Hello world Mock! as we mocked goodbyeFlow not to be invoked and we mocked set-payload to add Mock! -->
+		<munit:assert-payload-equals expectedValue="#['Hello world Mock!']" doc:name="Assert Payload"/>
+
+		<munit:assert-on-equals expectedValue="#['varValue']" actualValue="#[flowVars.myVar]" doc:name="Assert Equals"/>
+
+		<munit:assert-on-equals expectedValue="#['propertyValue']" actualValue="#[message.inboundProperties.myProp]" doc:name="Assert Equals"/>
+
+		<munit:assert-on-equals expectedValue="#['propertyValue']" actualValue="#[message.outboundProperties.myProp]" doc:name="Assert Equals"/>
+	</munit:test>
+
+	<munit:test description="hello-error-test" name="hello-error-test" expectException="java.lang.Exception">
+		<mock:throw-an whenCalling="mule:set-payload" exception-ref="#[new java.lang.Exception()]" doc:name="Throw an Exception">
+			<mock:with-attributes>
+				<mock:with-attribute name="doc:name" whereValue="#['Hello world!']" />
+			</mock:with-attributes>
+		</mock:throw-an>
+
+		<flow-ref name="helloFlow" doc:name="Flow-ref to helloFlow" />
+
+	</munit:test>
+
+</mule>

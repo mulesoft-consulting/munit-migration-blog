@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+
+	<munit:config name="munit-blog-mule4-test-suite.xml" />
+
+	<munit:test name="hello-test" description="hello-test">
+		<munit:behavior>
+			<munit-tools:mock-when processor="set-payload">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute attributeName="value" whereValue="#['Hello world!']" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:payload value="#['Hello world Mock!']" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+
+			<munit-tools:mock-when processor="flow-ref">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute attributeName="name" whereValue="goodbyeFlow" />
+				</munit-tools:with-attributes>
+				<munit-tools:then-return>
+					<munit-tools:attributes value="#[output application/java --- {'myAttribute': 'attValue'}]" />
+					<munit-tools:variables>
+						<munit-tools:variable value="#['varValue']" key="myVar" />
+					</munit-tools:variables>
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+
+			<munit-tools:spy processor="set-payload">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute attributeName="value" whereValue="#['Hello world!']" />
+				</munit-tools:with-attributes>
+				<munit-tools:before-call>
+					<munit-tools:assert-that expression="#[payload]" is="#[MunitTools::nullValue()]" />
+				</munit-tools:before-call>
+				<munit-tools:after-call>
+					<logger />
+					<munit-tools:assert-that expression="#[payload]" is="#[MunitTools::notNullValue()]" />
+				</munit-tools:after-call>
+			</munit-tools:spy>
+		</munit:behavior>
+
+		<munit:execution>
+			<flow-ref doc:name="Flow-ref to helloFlow" doc:id="20f7500c-1c15-4594-9d86-285d8720a4f2" name="helloFlow" />
+		</munit:execution>
+
+		<munit:validation>
+			<!-- Payload is  Hello world Mock! as we mocked goodbyeFlow not to be invoked and we mocked set-payload to add Mock! -->
+			<munit-tools:assert-that expression="#[payload]" is="#[MunitTools::equalTo('Hello world Mock!')]" doc:name="Payload has result" />
+
+
+			<munit-tools:assert-that expression="#[vars.myVar]" is="#[MunitTools::equalTo('varValue')]" doc:name="Variable is correct" />
+		</munit:validation>
+	</munit:test>
+
+
+	<munit:test name="hello-error-test" description="hello-error-test" expectedErrorType="ANY">
+		<munit:behavior>
+			<munit-tools:mock-when processor="set-payload">
+				<munit-tools:then-return>
+					<munit-tools:error typeId="ANY" />
+				</munit-tools:then-return>
+			</munit-tools:mock-when>
+		</munit:behavior>
+
+		<munit:execution>
+			<flow-ref doc:name="Flow-ref to helloFlow" doc:id="20f7500c-1c15-4594-9d86-285d8720a4f2" name="helloFlow" />
+		</munit:execution>
+	</munit:test>
+
+
+</mule>

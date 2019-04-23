@@ -1,0 +1,6 @@
+
+*.log
+munit-blog-mule3/.classpath
+munit-blog-mule3/.mule/objectstore/6f72b100-610c-11e9-b189-acde48001122/partition-descriptor
+munit-blog-mule3/.project
+*.prefs
